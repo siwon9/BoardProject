@@ -16,7 +16,7 @@ public class AppConfig {
         // 환경 변수 mode에 따라 설정파일을 분리 예) prod이면 application-prod.properties로 읽어온다.
         String mode = System.getenv("mode");
         mode = mode == null || mode.isBlank() ? "":"-" + mode;
-
+        //pc마다 환경이 다를 수 있기 때문이다.
         bundle = ResourceBundle.getBundle("application" + mode);
         configs = new HashMap<>();
         Iterator<String> iter = bundle.getKeys().asIterator();
