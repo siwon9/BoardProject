@@ -27,6 +27,7 @@ public class BeanContainer {
         mapperProvider = MapperProvider.getInstance();
     }
 
+    // 애너테이션 붙어있는애들이 객체가 안되어있으면 매개변수 확인해서 객체 생성후 map에 저장
     public void loadBeans() {
         // 패키지 경로 기준으로 스캔 파일 경로 조회
         try {
@@ -40,7 +41,8 @@ public class BeanContainer {
                     continue;
                 }
 
-                // 애노테이션 중 Controller, RestController, Component, Service, ControllerAdvice, RestControllerAdvice 등이 TYPE 애노테이션으로 정의된 경우 beans 컨테이너에 객체 생성하여 보관
+                // 애노테이션 중 Controller, RestController, Component, Service, ControllerAdvice,
+                // RestControllerAdvice 등이 TYPE 애노테이션으로 정의된 경우 beans 컨테이너에 객체 생성하여 보관
                 // 키값은 전체 클래스명, 값은 생성된 객체
                 String key = clazz.getName();
 
@@ -65,7 +67,9 @@ public class BeanContainer {
 
                 boolean isBean = false;
                 for (Annotation anno : annotations) {
-                    if (anno instanceof Controller || anno instanceof RestController || anno instanceof Service || anno instanceof Component || anno instanceof ControllerAdvice || anno instanceof RestControllerAdvice)  {
+                    if (anno instanceof Controller || anno instanceof RestController ||
+                            anno instanceof Service || anno instanceof Component ||
+                            anno instanceof ControllerAdvice || anno instanceof RestControllerAdvice)  {
                         isBean = true;
                         break;
                     }
@@ -75,7 +79,8 @@ public class BeanContainer {
                     Constructor con = clazz.getDeclaredConstructors()[0];
                     List<Object> objs = resolveDependencies(key, con);
                     if (!beans.containsKey(key)) {
-                        Object obj = con.getParameterTypes().length == 0 ? con.newInstance() : con.newInstance(objs.toArray());
+                        Object obj = con.getParameterTypes().length == 0 ? con.newInstance() :
+                                con.newInstance(objs.toArray());
                         beans.put(key, obj);
                     }
                 }
@@ -134,8 +139,8 @@ public class BeanContainer {
         }
 
         Class[] parameters = con.getParameterTypes();
-        if (parameters.length == 0) {
-            Object obj = con.newInstance();
+        if (parameters.length == 0) { // 기본생성자다. (매개변수가 없다)
+            Object obj = con.newInstance(); // 동적 객체생성.
             dependencies.add(obj);
         } else {
             for(Class clazz : parameters) {
@@ -151,17 +156,18 @@ public class BeanContainer {
                         continue;
                     }
                 }
-
                 Object obj = beans.get(clazz.getName());
                 if (obj == null) {
                     Constructor _con = clazz.getDeclaredConstructors()[0];
 
                     if (_con.getParameterTypes().length == 0) {
                         obj = _con.newInstance();
+             // ************************************************************************
                     } else {
                         List<Object> deps = resolveDependencies(clazz.getName(), _con);
                         obj = _con.newInstance(deps.toArray());
                     }
+           // ************************************************************************
                 }
                 dependencies.add(obj);
             }
@@ -171,15 +177,17 @@ public class BeanContainer {
         return dependencies;
     }
 
+    // 클래스의 순수 이름만 뽑아서 classes저장.
     private List<Class> getClassNames(String rootPath, String packageName) {
         List<Class> classes = new ArrayList<>();
         List<File> files = getFiles(rootPath);
         for (File file : files) {
             String path = file.getAbsolutePath();
-            String className = packageName + "." + path.replace(rootPath + File.separator, "").replace(".class", "").replace(File.separator, ".");
-            try {
-                Class cls = Class.forName(className);
-                classes.add(cls);
+            String className = packageName + "." + path.replace(rootPath + File.separator, "")
+                    .replace(".class", "").replace(File.separator, ".");
+            try {   // 클래스 경로를 바꿀 때 문자열로 바꾸고 다시 파일형태로 classes list에 저장
+                Class cls = Class.forName(className); //지정된 클래스 이름을 문자열로 받아 해당 클래스의 객체를 반환
+                classes.add(cls); // 결구겐 클래스형으로 저장됨
             } catch (ClassNotFoundException e) {
                 e.printStackTrace();
             }
@@ -213,6 +221,8 @@ public class BeanContainer {
      *
      * @param bean
      */
+    // 인터페잇가 아니고 유입된 bean의 클래스 객체 필드가 얘네인경우 , 들어온 매개변수값(클래스 이름)을 기본객체의 클래스 이름값으로변환
+    //
     private void updateObject(Object bean) {
         // 인터페이스인 경우 갱신 배제
         if (bean.getClass().isInterface()) {
@@ -227,18 +237,19 @@ public class BeanContainer {
 
                 /**
                  * 필드가 마이바티스 매퍼 또는 서블릿 기본 객체(HttpServletRequest, HttpServletResponse, HttpSession) 이라면 갱신
-                 *
+                 * // 우리는 세션을 모른다.
                  */
                 
                 Object mapper = mapperProvider.getMapper(clz);
 
                 // 그외 서블릿 기본 객체(HttpServletRequest, HttpServletResponse, HttpSession)이라면 갱신
-                if (clz == HttpServletRequest.class || clz == HttpServletResponse.class || clz == HttpSession.class || mapper != null) {
+                if (clz == HttpServletRequest.class || clz == HttpServletResponse.class ||
+                        clz == HttpSession.class || mapper != null) {
                     field.setAccessible(true);
                 }
 
                 if (clz == HttpServletRequest.class) {
-                    field.set(bean, getBean(HttpServletRequest.class));
+                    field.set(bean, getBean(HttpServletRequest.class)); //set메서드는 첫번째 매개변수를 두번째 매개변수로 바꾼다.
                 } else if (clz == HttpServletResponse.class) {
                     field.set(bean, getBean(HttpServletResponse.class));
                 } else if (clz == HttpSession.class) {
